@@ -5,23 +5,18 @@ from subprocess import Popen, PIPE
 import numpy as np
 
 # The board is represented as an array of arrays, with 10 rows and 10 columns.
-# BOARD_SIZE = (10, 10)
-BOARD_SIZE = {"x": 10, "y": 10}
-# board = []
-board = np.zeros(BOARD_SIZE.values())
+# BOARD_SIZE = {"x": 10, "y": 10}
+# board = np.zeros(BOARD_SIZE.values())
 
 
-# Setup the board.
-# for i in range(0, boardsize["y"]):
-#   board.append([0 for i in range(0, boardsize["x"])])
-
-# Draws the contents of the board with a border around it.
-def drawboard():
-    board_border = "".join(["*" for _ in range(0, BOARD_SIZE["x"] + 2)])
+def draw_board(board):
+    """ Draws the contents of the board with a border around it. """
+    n_rows, n_cols = board.shape
+    board_border = "".join(["*" for _ in range(0, n_cols + 2)])
     print board_border
-    for y in range(0, BOARD_SIZE["y"]):
+    for y in range(0, n_rows):
         line = "|"
-        for x in range(0, BOARD_SIZE["x"]):
+        for x in range(0, n_cols):
             line += ("#" if board[y][x] == 1 else " ")
         line += "|"
         print line
