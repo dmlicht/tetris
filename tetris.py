@@ -17,15 +17,15 @@ BLOCKS = [
 
 
 class Block():
-    def __init__(self, square_offsets, position=(0,0)):
-        self.block = np.zeros((BLOCK_DIMENSION, BLOCK_DIMENSION)) # todo remove
-        self.position = (0, 0)
+    def __init__(self, square_offsets, position=(0, 0)):
+        self.block = np.zeros((BLOCK_DIMENSION, BLOCK_DIMENSION))  # todo remove
+        self.position = position
         self.square_offsets = square_offsets
         self.render_matrix()
 
     def rotate(self):
         self.square_offsets = [(col, BLOCK_DIMENSION - 1 - row) for row, col in self.square_offsets]
-        
+
     def get_absolute_locations(self):
         for offset in self.square_offsets:
             yield (self.position[0] + offset[0], self.position[1] + offset[1])
@@ -72,6 +72,14 @@ class Board():
         # update_start_col:update_start_col + usable_block_cols] += usable_block
         return Board(board=new_board)
 
+    def in_bounds(self, block):
+        for location in block.get_absolute_locations():
+            if location[0] < 0 or location[0] >= self.board.shape[0]:
+                return False
+            if location[1] < 0 or location[1] >= self.board.shape[1]:
+                return False
+        return True
+
     def detect_bounds_collision(self, board, block, location):
         board_rows, board_cols = board.board.shape
         block_rows, block_cols = block.block.shape
@@ -92,6 +100,7 @@ class Game():
 
     def run(self):
         while not self.game_over:
+            print(self.board.in_bounds(self.active_block))
             active_board = self.board.add_block(self.active_block)
             draw_board(active_board.board)
             next_move = getinput()
@@ -115,7 +124,7 @@ def move(location, move_type):
 def main():
     game = Game()
     game.run()
-    
+
     # This example code draws a horizontal bar 4 squares long.
     # block = Block([(0, 0), (1, 0), (2, 0), (3, 0)])
     # pprint(block.block)
