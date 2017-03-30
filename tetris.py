@@ -1,19 +1,12 @@
 #!/usr/bin/env python
+from blocks import BLOCKS
 from tetrislib import *
 import numpy as np
-from pprint import pprint
+import threading
+import random
 
 # tetrislib defines the variable board and the functions drawboard() and getinput()
 BLOCK_DIMENSION = 4
-
-BLOCKS = [
-    [
-        (0, 0),
-        (1, 0),
-        (2, 0),
-        (3, 0),
-    ]
-]
 
 
 class Block():
@@ -26,9 +19,18 @@ class Block():
     def rotate(self):
         self.square_offsets = [(col, BLOCK_DIMENSION - 1 - row) for row, col in self.square_offsets]
 
+    def preview_rotate(self):
+        rotated = [(col, BLOCK_DIMENSION - 1 - row) for row, col in self.square_offsets]
+        for offset in rotated:
+            yield (self.position[0] + offset[0], self.position[1] + offset[1])
+
     def get_absolute_locations(self):
         for offset in self.square_offsets:
             yield (self.position[0] + offset[0], self.position[1] + offset[1])
+
+    def preview_move(self, move_offset):
+        for offset in self.square_offsets:
+            yield (self.position[0] + offset[0] + move_offset[0], self.position[1] + offset[1] + move_offset[1])
 
     def render_matrix(self):
         self.block = np.zeros((BLOCK_DIMENSION, BLOCK_DIMENSION))
@@ -46,31 +48,18 @@ class Board():
         else:
             self.board = board
 
-    def add_block(self, block):
-        start_row, start_col = block.position
-        # check_bounds(self.board, location, block)
+    def anchor(self, block):
+        self.board = self._add_block_to_board(block)
+
+    def show_block(self, block):
+        new_board = self._add_block_to_board(block)
+        return Board(board=new_board)
+
+    def _add_block_to_board(self, block):
         new_board = np.copy(self.board)
         for location in block.get_absolute_locations():
             new_board[location[0], location[1]] += 1
-        # print(location)
-        # board_rows, board_cols = self.board.shape
-
-        # start_rows_at = -1 * min(0, location[0])
-        # end_rows_at = board_rows - (location[0])
-        # start_cols_at = -1 * min(0, location[1])
-        # end_cols_at = board_cols - (location[1])
-
-        # usable_block = block.block[start_rows_at:end_rows_at, start_cols_at:end_cols_at]
-        # usable_block_rows, usable_block_cols = usable_block.shape
-        # print(end_rows_at)
-        # print(end_cols_at)
-        # pprint(usable_block)
-
-        # update_start_row = max(0, start_row)
-        # update_start_col = max(0, start_col)
-        # new_board[update_start_row:update_start_row + usable_block_rows,
-        # update_start_col:update_start_col + usable_block_cols] += usable_block
-        return Board(board=new_board)
+        return new_board
 
     def in_bounds(self, block):
         for location in block.get_absolute_locations():
@@ -80,34 +69,108 @@ class Board():
                 return False
         return True
 
-    def detect_bounds_collision(self, board, block, location):
-        board_rows, board_cols = board.board.shape
-        block_rows, block_cols = block.block.shape
-        row_offset, col_offset = location
-        row_oub = out_of_bounds_amount(board_rows, block_rows, row_offset)
-        block.block[row_oub:, :]
+    def can_place_block(self, block_locations):
+        for location in block_locations:
+            for dim in range(2):
+                if location[dim] >= self.board.shape[dim] or location[dim] < 0:
+                    return False
+            if self.board[location[0], location[1]] > 0:
+                return False
+        return True
+
+    def can_move_down(self, block):
+        return self.can_move_offset(block, (1, 0))
+
+    def can_move_right(self, block):
+        return self.can_move_offset(block, (0, 1))
+
+    def can_move_left(self, block):
+        return self.can_move_offset(block, (0, -1))
+
+    def can_move_offset(self, block, offset):
+        for location in block.get_absolute_locations():
+            offset_location = location[0] + offset[0], location[1] + offset[1]
+            for dim in range(2):
+                if offset_location[dim] >= self.board.shape[dim] or offset_location < 0:
+                    return False
+            if self.board[offset_location[0], offset_location[1]] > 0:
+                return False
+        return True
+
+    def clear(self):
+        points = 0
+        ii = self.board.shape[0] - 1
+        while ii >= 0:
+            row_full = all(self.board[ii, :])
+            if row_full:
+                points += 1
+                ii -= 1
+            else:
+                break
+
+        self.remove_bottom_n_rows(points)
+        return points
+
+    def remove_bottom_n_rows(self, n):
+        if n == 0:
+            return
+        self.board[-1 * n:, :] = 0
+        self.board = np.roll(self.board, n, axis=0)
 
 
 def out_of_bounds_amount(board_size, block_size, offset):
     return board_size - (offset + block_size)
 
 
+def next_block():
+    rand = random.randint(0, len(BLOCKS) - 1)
+    return Block(BLOCKS[rand])
+
+
+MOVES = {
+    'right': (0, 1),
+    'left': (0, -1),
+    'down': (1, 0)
+}
+
+
 class Game():
     def __init__(self):
         self.board = Board()
-        self.active_block = Block(BLOCKS[0])
+        self.active_block = next_block()
         self.game_over = False
+        self.points = 0
 
     def run(self):
+        t = threading.Timer(3.0, self.handle_down)
+        t.start()
         while not self.game_over:
-            print(self.board.in_bounds(self.active_block))
-            active_board = self.board.add_block(self.active_block)
+            active_board = self.board.show_block(self.active_block)
+            print("score:", self.points)
             draw_board(active_board.board)
             next_move = getinput()
             if next_move == "up":
-                self.active_block.rotate()
-            else:
-                self.active_block.position = move(self.active_block.position, next_move)
+                if self.board.can_place_block(self.active_block.preview_rotate()):
+                    self.active_block.rotate()
+            elif next_move == "left":
+                if self.board.can_place_block(self.active_block.preview_move(MOVES['left'])):
+                    self.active_block.position = move(self.active_block.position, next_move)
+            elif next_move == "right":
+                if self.board.can_place_block(self.active_block.preview_move(MOVES['right'])):
+                    self.active_block.position = move(self.active_block.position, next_move)
+            elif next_move == "down":
+                self.handle_down()
+        print("Game over, you got " + str(self.points) + " points.")
+
+    def handle_down(self):
+        if self.board.can_move_down(self.active_block):
+            self.active_block.position = move(self.active_block.position, "down")
+        else:
+            self.board.anchor(self.active_block)
+            self.points += self.board.clear()
+            self.active_block = next_block()
+            if not self.board.can_place_block(self.active_block.get_absolute_locations()):
+                self.game_over = True
 
 
 def move(location, move_type):
@@ -124,33 +187,6 @@ def move(location, move_type):
 def main():
     game = Game()
     game.run()
-
-    # This example code draws a horizontal bar 4 squares long.
-    # block = Block([(0, 0), (1, 0), (2, 0), (3, 0)])
-    # pprint(block.block)
-    # block.rotate()
-    # pprint(block.render())
-    # block.rotate()
-    # pprint(block.render())
-    # block.rotate()
-    # pprint(block.render())
-    # block.rotate()
-    # pprint(block.render())
-
-    # bb = Board()
-    # bb = bb.add_block(block, (2, 0))
-
-    # row = 2
-    # board[row][5] = 1
-    # board[row][6] = 1
-    # board[row][7] = 1
-    # board[row][8] = 1
-
-    # draw_board(bb.board)
-
-    # This code waits for input until the user hits a keystroke. getinput() returns one of "left", "up", "right",
-    # "down".
-    # print getinput()
 
 
 if __name__ == '__main__':
