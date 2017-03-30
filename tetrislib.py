@@ -12,16 +12,21 @@ from subprocess import Popen, PIPE
 
 def draw_board(board):
     """ Draws the contents of the board with a border around it. """
-    n_rows, n_cols = board.shape
-    board_border = "".join(["*" for _ in range(0, n_cols + 2)])
-    print(board_border)
-    for y in range(0, n_rows):
-        line = "|"
-        for x in range(0, n_cols):
-            line += ("#" if board[y][x] == 1 else " ")
-        line += "|"
-        print(line)
-    print(board_border)
+    try:
+        ## TODO: this is a total hack
+        os.system("stty sane")
+        n_rows, n_cols = board.shape
+        board_border = "".join(["*" for _ in range(0, n_cols + 2)])
+        print(board_border)
+        for y in range(0, n_rows):
+            line = "|"
+            for x in range(0, n_cols):
+                line += ("#" if board[y][x] == 1 else " ")
+            line += "|"
+            print(line)
+        print(board_border)
+    finally:
+        os.system("stty raw -echo")
 
 
 # Waits for a single character of input and returns the string "left", "down", "right", "up", or None.
