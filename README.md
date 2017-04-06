@@ -11,6 +11,11 @@ From the root directory, run:
 run: [`python 3`, `numpy`]  
 test: [`pytest`]
 
+## Tools
+- curses
+- numpy
+- context managers
+
 ## Tests
 To run the tests, from the root directory run:
 
