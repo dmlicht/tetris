@@ -69,7 +69,7 @@ class Board:
         return True
 
     def clear(self) -> int:
-        """ Clears full bottom rows and returns amount of rows cleared 
+        """ Clears full bottom rows and returns amount of rows cleared
         Actually this would be nice to have return another board as well, to be consistent with the 
         rest of the api - but I don't have time to redesign it at the moment."""
 
@@ -79,19 +79,14 @@ class Board:
             row_full = all(self._board[ii, :])
             if row_full:
                 rows_cleared += 1
-                ii -= 1
+                self._board[1:ii+1, :] = self._board[0:ii, :]
+                self._board[0, :] = 0
+                # ii -= 1
             else:
-                break
+                ii -= 1
+                # break
 
-        self._remove_bottom_n_rows(rows_cleared)
         return rows_cleared
-
-    def _remove_bottom_n_rows(self, n):
-        if n == 0:
-            return
-        self._board[-1 * n:, :] = 0
-        self._board = np.roll(self._board, n, axis=0)
-
 
 def next_block():
     rand = random.randint(0, len(BLOCKS) - 1)

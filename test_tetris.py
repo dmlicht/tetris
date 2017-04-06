@@ -99,3 +99,18 @@ def test_clear_removes_full_bottom_rows(board):
 def test_clear_returns_the_correct_number_of_points(board):
     board._board[-2:, :] = 1  # fill up the bottom two rows
     assert board.clear() == 2
+
+
+def test_clear_removes_only_full_rows(board):
+    board._board[-2:, :] = 1  # fill up the bottom two rows
+    board._board[-3, 0] = 1  # Add a piece in a non full row
+    board.clear()
+    assert np.sum(board._board) == 1
+
+
+def test_clear_removes_middle_row(board):
+    board._board[-1, 1] = 1
+    board._board[-2, :] = 1  # fill up the bottom two rows
+    board._board[-3, 1] = 1
+    board.clear()
+    assert board._board[-2, 1] == 1
