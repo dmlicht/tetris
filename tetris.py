@@ -113,15 +113,18 @@ class Game:
         self.game_over = False
         self.points = 0
         self.timed_down = None
+        self.terminal_io = None
 
     def run(self):
-        self._display_state()
-        self._reset_down_timer()
+        with curses_ctx() as stdscr:
+            self.terminal_io = TerminalIO(stdscr)
+            self._display_state()
+            self._reset_down_timer()
 
-        # self.timed_drop = self.scheduler.enter(DROP_DELAY, 1, self.handle_move, argument=("down",))
-        while not self.game_over:
-            next_move = get_input()
-            self.handle_move(next_move)
+            # self.timed_drop = self.scheduler.enter(DROP_DELAY, 1, self.handle_move, argument=("down",))
+            while not self.game_over:
+                next_move = self.terminal_io.get_input()
+                self.handle_move(next_move)
 
         print("Game over, you got " + str(self.points) + " points.")
 
@@ -149,7 +152,7 @@ class Game:
     def _display_state(self):
         print("score:", self.points)
         active_board = self.board.with_block(self.active_block)
-        draw_board(active_board._board)
+        self.terminal_io.draw_board(active_board._board)
 
     def _reset_down_timer(self):
         if self.timed_down is not None:
