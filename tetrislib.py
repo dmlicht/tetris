@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import curses
 from contextlib import contextmanager
+import os
 
 
 @contextmanager
@@ -14,7 +15,7 @@ def curses_ctx():
     stdscr.keypad(False)
     curses.echo()
     curses.endwin()
-
+    os.system("stty sane")
 
 class TerminalIO():
     def __init__(self, stdscr):
