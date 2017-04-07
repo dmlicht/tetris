@@ -3,7 +3,8 @@ from pprint import pprint
 import pytest
 import numpy as np
 
-from tetris import Block, Offset, Location, Board
+from blocks import BLOCKS
+from tetris import Block, Offset, Location, Board, from_tuples
 
 LINE_BLOCK_INDICES = [
     (0, 0),
@@ -63,6 +64,33 @@ def test_rotate_block(line_block):
     rotated = line_block.rotate()
     print(list(rotated.get_locations()))
     assert set(rotated.get_locations()) == set(expected)
+
+
+def test_rotate_square():
+    square_block = from_tuples(BLOCKS[1])
+    expected = [
+        Location(0, 0),
+        Location(0, 1),
+        Location(1, 0),
+        Location(1, 1)
+    ]
+    rotated_once = square_block.rotate()
+    assert set(expected) == set(rotated_once.get_locations())
+    rotated_twice = rotated_once.rotate()
+    assert set(expected) == set(rotated_twice.get_locations())
+    rotated_thrice = rotated_twice.rotate()
+    assert set(expected) == set(rotated_thrice.get_locations())
+    rotated_four_times = rotated_thrice.rotate()
+    assert set(expected) == set(rotated_four_times.get_locations())
+
+
+def test_block_longest_dimension_on_line(line_block):
+    assert line_block._get_longest_dimension() == 4
+
+
+def test_longest_dimension_on_square():
+    square_block = from_tuples(BLOCKS[1])
+    assert square_block._get_longest_dimension() == 2
 
 
 def test_create_board():

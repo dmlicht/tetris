@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from collections import namedtuple
-from typing import Sequence
+from typing import Sequence, Tuple
 
 from blocks import BLOCKS
 from tetrislib import *
@@ -23,16 +23,20 @@ class Block:
     def __init__(self, offsets: Sequence[Offset], location: Location = Location(0, 0)):
         self._location = location
         self._offsets = offsets
+        self._longest_dimension = self._get_longest_dimension()
 
     def rotate(self) -> 'Block':
         """ Returns a new block representing the 90 degree rotation of this block """
-        new_offsets = [Offset(col, BLOCK_DIMENSION - 1 - row) for row, col in self._offsets]
+        new_offsets = [Offset(col, self._longest_dimension - 1 - row) for row, col in self._offsets]
         return Block(new_offsets, self._location)
 
     def move(self, offset: Offset) -> 'Block':
         """ Returns a new block representing a transposition of a given block by offset """
         new_location = Location(self._location.row + offset.row, self._location.col + offset.col)
         return Block(self._offsets, new_location)
+
+    def _get_longest_dimension(self):
+        return max([max(loc) for loc in self._offsets]) + 1
 
     def get_locations(self):
         for offset in self._offsets:
@@ -79,7 +83,7 @@ class Board:
             row_full = all(self._board[ii, :])
             if row_full:
                 rows_cleared += 1
-                self._board[1:ii+1, :] = self._board[0:ii, :]
+                self._board[1:ii + 1, :] = self._board[0:ii, :]
                 self._board[0, :] = 0
                 # ii -= 1
             else:
@@ -88,9 +92,14 @@ class Board:
 
         return rows_cleared
 
-def next_block():
+
+def next_block() -> Block:
     rand = random.randint(0, len(BLOCKS) - 1)
-    locations = [Location(*tup) for tup in BLOCKS[rand]]
+    return from_tuples(BLOCKS[rand])
+
+
+def from_tuples(tuples: Sequence[Tuple[int, int]]) -> Block:
+    locations = [Location(*tup) for tup in tuples]
     return Block(locations)
 
 
@@ -121,7 +130,7 @@ class Game:
                 next_move = self.terminal_io.get_input()
                 self.handle_move(next_move)
 
-        print("Game over, you got " + str(self.points) + " points.")
+            print("Game over, you got " + str(self.points) + " points.")
 
     def handle_move(self, move):
         if move == "up":
@@ -129,6 +138,8 @@ class Game:
             if self.board.can_place_block(rotated):
                 self.active_block = rotated
         elif move in ["left", "right", "down"]:
+            if move == "right":
+                print("WHOA RIGHT")
             move_offset = translate_move(move)
             moved_block = self.active_block.move(move_offset)
             if self.board.can_place_block(moved_block):
